@@ -1,0 +1,60 @@
+/* Pawpet brand theme — injected into Jitsi Meet */
+
+/* Primary orange accent everywhere */
+:root {
+  --color-primary: #E85D26;
+  --color-primary-dark: #CC5122;
+  --color-primary-light: #FF7043;
+}
+
+/* Pre-join / welcome screen header */
+.header-container {
+  background: linear-gradient(135deg, #1a0a00 0%, #2d1200 100%) !important;
+}
+
+/* Toolbar call button */
+.toolbox-button.button-active,
+.audio-video-header .primary-toolbar-button {
+  background-color: #E85D26 !important;
+}
+
+/* Join / Start meeting button */
+.prejoin-preview .button.primary,
+.primary-action-button,
+[class*="joinButton"],
+[class*="join-button"] {
+  background-color: #E85D26 !important;
+  border-color: #E85D26 !important;
+}
+
+[class*="joinButton"]:hover,
+[class*="join-button"]:hover,
+.primary-action-button:hover {
+  background-color: #CC5122 !important;
+}
+
+/* Watermark / logo area */
+.leftwatermark,
+.watermark {
+  opacity: 0.95 !important;
+}
+
+/* Welcome page background */
+.welcome-page {
+  background: linear-gradient(160deg, #0f0600 0%, #1a0a00 40%, #0d0d0d 100%) !important;
+}
+
+/* Active speaker highlight ring */
+.dominant-speaker-indicator-container .dominant-speaker-indicator {
+  border-color: #E85D26 !important;
+}
+
+/* Chat input send button */
+.chat-input-area .send-button {
+  color: #E85D26 !important;
+}
+
+/* Raise hand, reactions active state */
+.toolbox-icon.toggled {
+  background-color: #E85D26 !important;
+}

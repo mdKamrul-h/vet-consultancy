@@ -1,0 +1,231 @@
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: pawpet-postgres
+    environment:
+      POSTGRES_DB: pawpet
+      POSTGRES_USER: pawpet
+      POSTGRES_PASSWORD: pawpet123
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U pawpet"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - pawpet-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: pawpet-redis
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - pawpet-network
+
+  backend:
+    build: ./backend
+    container_name: pawpet-backend
+    environment:
+      DATABASE_URL: postgresql://pawpet:pawpet123@postgres:5432/pawpet
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: pawpet-super-secret-jwt-key-2024
+      JWT_EXPIRES_IN: 7d
+      PORT: 5000
+      JITSI_APP_ID: pawpet
+      JITSI_SECRET: jitsi-secret-key
+      JITSI_DOMAIN: localhost:8443
+      NODE_ENV: development
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+    networks:
+      - pawpet-network
+    command: sh -c "npx prisma db push --accept-data-loss && node prisma/seed.js && node src/index.js"
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        NEXT_PUBLIC_API_URL: http://localhost/api
+        NEXT_PUBLIC_SOCKET_URL: http://localhost
+        NEXT_PUBLIC_JITSI_DOMAIN: localhost:8080
+    container_name: pawpet-frontend
+    depends_on:
+      - backend
+    ports:
+      - "3000:3000"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3000/ || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    networks:
+      - pawpet-network
+
+  nginx:
+    image: nginx:alpine
+    container_name: pawpet-nginx
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      frontend:
+        condition: service_healthy
+      backend:
+        condition: service_started
+    networks:
+      - pawpet-network
+
+  # ---------------------------------------------------------------------------
+  # Jitsi Meet services
+  # ---------------------------------------------------------------------------
+
+  jitsi-web:
+    image: jitsi/web:stable-9111
+    container_name: pawpet-jitsi-web
+    restart: unless-stopped
+    ports:
+      - "8443:443"
+      - "8080:80"
+    volumes:
+      - ./jitsi-config/web:/config:Z
+      - ./jitsi-config/web/crontabs:/var/spool/cron/crontabs:Z
+      # Pawpet branding overrides
+      - ./jitsi-config/web/pawpet-watermark.svg:/usr/share/jitsi-meet/images/watermark.svg:ro
+      - ./jitsi-config/web/title.html:/usr/share/jitsi-meet/title.html:ro
+      - ./jitsi-config/web/pawpet-theme.css:/usr/share/jitsi-meet/css/pawpet-theme.css:ro
+      - ./jitsi-config/web/plugin.head.html:/usr/share/jitsi-meet/plugin.head.html:ro
+    environment:
+      - ENABLE_LETSENCRYPT=0
+      - ENABLE_HTTP_REDIRECT=0
+      - DISABLE_HTTPS=1
+      - JICOFO_AUTH_USER=focus
+      - XMPP_DOMAIN=meet.jitsi
+      - XMPP_AUTH_DOMAIN=auth.meet.jitsi
+      - XMPP_BOSH_URL_BASE=http://jitsi-prosody:5280
+      - XMPP_GUEST_DOMAIN=guest.meet.jitsi
+      - XMPP_MUC_DOMAIN=muc.meet.jitsi
+      - XMPP_RECORDER_DOMAIN=recorder.meet.jitsi
+      - TZ=Asia/Dhaka
+    networks:
+      - pawpet-network
+      - meet.jitsi
+
+  jitsi-prosody:
+    image: jitsi/prosody:stable-9111
+    container_name: pawpet-jitsi-prosody
+    restart: unless-stopped
+    expose:
+      - '5222'
+      - '5269'
+      - '5280'
+      - '5347'
+    volumes:
+      - ./jitsi-config/prosody/config:/config:Z
+      - ./jitsi-config/prosody/prosody-plugins-custom:/prosody-plugins-custom:Z
+    environment:
+      - AUTH_TYPE=internal
+      - ENABLE_AUTH=0
+      - ENABLE_GUESTS=1
+      - GLOBAL_MODULES=
+      - GLOBAL_CONFIG=
+      - JICOFO_COMPONENT_SECRET=PawpetJicofoSecret2024!
+      - JICOFO_AUTH_USER=focus
+      - JICOFO_AUTH_PASSWORD=PawpetFocusPass2024!
+      - JVB_AUTH_USER=jvb
+      - JVB_AUTH_PASSWORD=PawpetJvbPass2024!
+      - JIGASI_XMPP_USER=jigasi
+      - JIGASI_XMPP_PASSWORD=PawpetJigasiPass2024!
+      - JIBRI_XMPP_USER=jibri
+      - JIBRI_RECORDER_USER=recorder
+      - JIBRI_RECORDER_PASSWORD=PawpetRecorderPass2024!
+      - XMPP_DOMAIN=meet.jitsi
+      - XMPP_AUTH_DOMAIN=auth.meet.jitsi
+      - XMPP_GUEST_DOMAIN=guest.meet.jitsi
+      - XMPP_MUC_DOMAIN=muc.meet.jitsi
+      - XMPP_INTERNAL_MUC_DOMAIN=internal-muc.meet.jitsi
+      - XMPP_RECORDER_DOMAIN=recorder.meet.jitsi
+      - TZ=Asia/Dhaka
+    networks:
+      - pawpet-network
+      - meet.jitsi
+
+  jitsi-jicofo:
+    image: jitsi/jicofo:stable-9111
+    container_name: pawpet-jitsi-jicofo
+    restart: unless-stopped
+    volumes:
+      - ./jitsi-config/jicofo:/config:Z
+    environment:
+      - AUTH_TYPE=internal
+      - ENABLE_AUTH=0
+      - XMPP_DOMAIN=meet.jitsi
+      - XMPP_HOST=jitsi-prosody
+      - XMPP_PORT=5222
+      - XMPP_AUTH_DOMAIN=auth.meet.jitsi
+      - XMPP_INTERNAL_MUC_DOMAIN=internal-muc.meet.jitsi
+      - XMPP_MUC_DOMAIN=muc.meet.jitsi
+      - JICOFO_COMPONENT_SECRET=PawpetJicofoSecret2024!
+      - JICOFO_AUTH_USER=focus
+      - JICOFO_AUTH_PASSWORD=PawpetFocusPass2024!
+      - JVB_BREWERY_MUC=jvbbrewery
+      - TZ=Asia/Dhaka
+    depends_on:
+      - jitsi-prosody
+    networks:
+      - pawpet-network
+      - meet.jitsi
+
+  jitsi-jvb:
+    image: jitsi/jvb:stable-9111
+    container_name: pawpet-jitsi-jvb
+    restart: unless-stopped
+    ports:
+      - '10000:10000/udp'
+      - '8888:8080'
+    volumes:
+      - ./jitsi-config/jvb:/config:Z
+    environment:
+      - AUTH_TYPE=internal
+      - XMPP_AUTH_DOMAIN=auth.meet.jitsi
+      - XMPP_INTERNAL_MUC_DOMAIN=internal-muc.meet.jitsi
+      - XMPP_HOST=jitsi-prosody
+      - XMPP_PORT=5222
+      - JVB_AUTH_USER=jvb
+      - JVB_AUTH_PASSWORD=PawpetJvbPass2024!
+      - JVB_BREWERY_MUC=jvbbrewery
+      - JVB_PORT=10000
+      - JVB_TCP_HARVESTER_DISABLED=true
+      - TZ=Asia/Dhaka
+    depends_on:
+      - jitsi-prosody
+    networks:
+      - pawpet-network
+      - meet.jitsi
+
+volumes:
+  postgres_data:
+
+networks:
+  pawpet-network:
+    driver: bridge
+  meet.jitsi:
+    driver: bridge

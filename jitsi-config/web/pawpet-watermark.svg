@@ -1,0 +1,19 @@
+<svg width="140" height="40" viewBox="0 0 140 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Paw print icon -->
+  <!-- Main pad -->
+  <ellipse cx="18" cy="26" rx="7" ry="8.5" fill="#E85D26"/>
+  <!-- Top left toe -->
+  <ellipse cx="8" cy="16" rx="4" ry="5" fill="#E85D26"/>
+  <!-- Top center-left toe -->
+  <ellipse cx="15" cy="12" rx="4" ry="5" fill="#E85D26"/>
+  <!-- Top center-right toe -->
+  <ellipse cx="22" cy="12" rx="4" ry="5" fill="#E85D26"/>
+  <!-- Top right toe -->
+  <ellipse cx="29" cy="16" rx="4" ry="5" fill="#E85D26"/>
+
+  <!-- Wordmark "Pawpet" -->
+  <text x="40" y="28" font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="700" fill="#E85D26" letter-spacing="-0.5">Pawpet</text>
+
+  <!-- Tagline -->
+  <text x="40" y="38" font-family="Arial, Helvetica, sans-serif" font-size="8" font-weight="400" fill="#E85D26" opacity="0.75" letter-spacing="0.5">VET CONSULT</text>
+</svg>
