@@ -6,6 +6,7 @@ import { useAuth } from '@/context/AuthContext';
 import { Navbar } from '@/components/layout/Navbar';
 import { Sidebar } from '@/components/layout/Sidebar';
 import { MobileBottomNav } from '@/components/layout/MobileBottomNav';
+import { DemoBanner } from '@/components/layout/DemoBanner';
 
 export default function MainLayout({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading } = useAuth();
@@ -33,6 +34,7 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
 
   return (
     <div className="min-h-screen bg-gray-50">
+      <DemoBanner />
       <Navbar
         onMenuToggle={() => setSidebarOpen(!sidebarOpen)}
         sidebarOpen={sidebarOpen}

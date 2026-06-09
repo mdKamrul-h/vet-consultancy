@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import {
   User,
@@ -54,6 +54,19 @@ export default function ProfilePage() {
     name: user?.name || '',
     phone: '',
   });
+
+  useEffect(() => {
+    const fetchPets = async () => {
+      try {
+        const res = await petApi.list();
+        const data = res.data?.data?.pets ?? res.data?.data;
+        if (Array.isArray(data) && data.length > 0) setPets(data);
+      } catch {
+        // keep mock pets
+      }
+    };
+    fetchPets();
+  }, []);
 
   const [newPet, setNewPet] = useState<{
     name: string;

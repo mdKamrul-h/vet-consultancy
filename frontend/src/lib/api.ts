@@ -1,4 +1,13 @@
 import axios, { AxiosInstance, InternalAxiosRequestConfig, AxiosResponse, AxiosError } from 'axios';
+import { isDemoMode } from './demo';
+import {
+  demoAuthApi,
+  demoConsultationApi,
+  demoPaymentApi,
+  demoPetApi,
+  demoUrgentApi,
+  demoVetApi,
+} from './demoApi';
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
 
@@ -20,15 +29,13 @@ api.interceptors.request.use(
     }
     return config;
   },
-  (error: AxiosError) => {
-    return Promise.reject(error);
-  }
+  (error: AxiosError) => Promise.reject(error)
 );
 
 api.interceptors.response.use(
   (response: AxiosResponse) => response,
   (error: AxiosError) => {
-    if (error.response?.status === 401) {
+    if (!isDemoMode && error.response?.status === 401) {
       if (typeof window !== 'undefined') {
         localStorage.removeItem('pawpet_token');
         localStorage.removeItem('pawpet_user');
@@ -41,25 +48,22 @@ api.interceptors.response.use(
 
 export default api;
 
-// Auth endpoints
 export const authApi = {
   login: (email: string, password: string) =>
-    api.post('/auth/login', { email, password }),
+    isDemoMode ? demoAuthApi.login(email, password) : api.post('/auth/login', { email, password }),
   register: (data: { name: string; email: string; password: string; role: string }) =>
-    api.post('/auth/register', data),
-  me: () => api.get('/auth/me'),
-  logout: () => api.post('/auth/logout'),
+    isDemoMode ? demoAuthApi.register(data) : api.post('/auth/register', data),
+  me: () => (isDemoMode ? demoAuthApi.me() : api.get('/auth/me')),
+  logout: () => (isDemoMode ? demoAuthApi.logout() : api.post('/auth/logout')),
 };
 
-// Vet endpoints
 export const vetApi = {
   list: (params?: { online?: boolean; specialty?: string; page?: number; limit?: number }) =>
-    api.get('/vets', { params }),
-  getById: (id: string) => api.get(`/vets/${id}`),
-  getOnline: () => api.get('/vets/online'),
+    isDemoMode ? demoVetApi.list(params) : api.get('/vets', { params }),
+  getById: (id: string) => (isDemoMode ? demoVetApi.getById(id) : api.get(`/vets/${id}`)),
+  getOnline: () => (isDemoMode ? demoVetApi.getOnline() : api.get('/vets/online')),
 };
 
-// Consultation endpoints
 export const consultationApi = {
   create: (data: {
     type: string;
@@ -69,16 +73,17 @@ export const consultationApi = {
     urgencyLevel: string;
     vetId?: string;
     scheduledAt?: string;
-  }) => api.post('/consultations', data),
-  list: () => api.get('/consultations'),
-  getById: (id: string) => api.get(`/consultations/${id}`),
-  startSession: (id: string) => api.post(`/consultations/${id}/start`),
-  endSession: (id: string) => api.post(`/consultations/${id}/end`),
+  }) => (isDemoMode ? demoConsultationApi.create() : api.post('/consultations', data)),
+  list: () => (isDemoMode ? demoConsultationApi.list() : api.get('/consultations')),
+  getById: (id: string) =>
+    isDemoMode ? demoConsultationApi.getById(id) : api.get(`/consultations/${id}`),
+  startSession: (id: string) =>
+    isDemoMode ? demoConsultationApi.startSession(id) : api.post(`/consultations/${id}/start`),
+  endSession: (id: string) =>
+    isDemoMode ? demoConsultationApi.endSession(id) : api.post(`/consultations/${id}/end`),
 };
 
-// Urgent request endpoints
 export const urgentApi = {
-  // Step 1: create the consultation record
   createConsultation: (data: {
     petId: string;
     symptoms: string;
@@ -86,27 +91,26 @@ export const urgentApi = {
     consultMode: string;
     type: string;
     consultationFee: number;
-  }) => api.post('/consultations', data),
-  // Step 2: start urgent matching (backend notifies all online vets)
+  }) => (isDemoMode ? demoUrgentApi.createConsultation() : api.post('/consultations', data)),
   startMatching: (consultationId: string) =>
-    api.post('/urgent/request', { consultationId }),
-  getStatus: (requestId: string) => api.get(`/urgent/${requestId}/status`),
-  acceptRequest: (requestId: string) => api.post(`/urgent/${requestId}/accept`),
+    isDemoMode ? demoUrgentApi.startMatching(consultationId) : api.post('/urgent/request', { consultationId }),
+  getStatus: (requestId: string) =>
+    isDemoMode ? demoUrgentApi.getStatus(requestId) : api.get(`/urgent/${requestId}/status`),
+  acceptRequest: (requestId: string) =>
+    isDemoMode ? demoUrgentApi.acceptRequest(requestId) : api.post(`/urgent/${requestId}/accept`),
 };
 
-// Payment endpoints
 export const paymentApi = {
-  initiate: (data: {
-    consultationId: string;
-    method: string;
-    promoCode?: string;
-  }) => api.post('/payments/initiate', data),
-  verify: (paymentId: string) => api.get(`/payments/${paymentId}/verify`),
+  initiate: (data: { consultationId: string; method: string; promoCode?: string }) =>
+    isDemoMode ? demoPaymentApi.initiate(data) : api.post('/payments/initiate', data),
+  verify: (paymentId: string) =>
+    isDemoMode ? demoPaymentApi.verify(paymentId) : api.get(`/payments/${paymentId}/verify`),
   getByConsultation: (consultationId: string) =>
-    api.get(`/payments/consultation/${consultationId}`),
+    isDemoMode
+      ? demoPaymentApi.getByConsultation(consultationId)
+      : api.get(`/payments/consultation/${consultationId}`),
 };
 
-// Community endpoints
 export const communityApi = {
   getPosts: (params?: { category?: string; type?: string; page?: number }) =>
     api.get('/community/posts', { params }),
@@ -121,9 +125,8 @@ export const communityApi = {
   getCategoryCounts: () => api.get('/community/category-counts'),
 };
 
-// Pet endpoints
 export const petApi = {
-  list: () => api.get('/pets'),
+  list: () => (isDemoMode ? demoPetApi.list() : api.get('/pets')),
   create: (data: {
     name: string;
     species: string;
@@ -132,12 +135,10 @@ export const petApi = {
     ageUnit: string;
     gender: string;
     weight?: number;
-  }) => api.post('/pets', data),
-  update: (id: string, data: Partial<{
-    name: string;
-    breed: string;
-    age: number;
-    weight: number;
-  }>) => api.put(`/pets/${id}`, data),
-  delete: (id: string) => api.delete(`/pets/${id}`),
+  }) => (isDemoMode ? demoPetApi.create(data) : api.post('/pets', data)),
+  update: (
+    id: string,
+    data: Partial<{ name: string; breed: string; age: number; weight: number }>
+  ) => (isDemoMode ? demoPetApi.update(id, data) : api.put(`/pets/${id}`, data)),
+  delete: (id: string) => (isDemoMode ? demoPetApi.delete(id) : api.delete(`/pets/${id}`)),
 };

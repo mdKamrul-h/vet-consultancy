@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { PawPrint, Eye, EyeOff, Mail, Lock, Zap, Stethoscope, Shield } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
+import { isDemoMode } from '@/lib/demo';
 
 export default function LoginPage() {
   const { login } = useAuth();
@@ -54,7 +55,7 @@ export default function LoginPage() {
       await login(credentials.email, credentials.password);
       router.push('/dashboard');
     } catch {
-      setError('Demo login failed — make sure the backend is running');
+      setError('Demo login failed. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -110,6 +111,12 @@ export default function LoginPage() {
           <div className="bg-white rounded-2xl border border-gray-200 p-8 shadow-sm">
             <h1 className="text-2xl font-bold text-gray-900 mb-1">Welcome back</h1>
             <p className="text-gray-500 mb-6">Sign in to your Pawpet account</p>
+
+            {isDemoMode && (
+              <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-800">
+                Demo mode — use the quick access buttons below or any email with password <strong>password123</strong>.
+              </div>
+            )}
 
             {error && (
               <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-600">

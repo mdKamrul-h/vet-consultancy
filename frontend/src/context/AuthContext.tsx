@@ -2,7 +2,8 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { User } from '@/types';
-import api from '@/lib/api';
+import { authApi } from '@/lib/api';
+import { DEMO_TOKEN } from '@/lib/demo';
 
 interface AuthContextType {
   user: User | null;
@@ -39,20 +40,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const login = async (email: string, password: string) => {
-    const response = await api.post('/auth/login', { email, password });
+    const response = await authApi.login(email, password);
     const { token: newToken, user: newUser } = response.data.data || response.data;
-    localStorage.setItem('pawpet_token', newToken);
+    localStorage.setItem('pawpet_token', newToken || DEMO_TOKEN);
     localStorage.setItem('pawpet_user', JSON.stringify(newUser));
-    setToken(newToken);
+    setToken(newToken || DEMO_TOKEN);
     setUser(newUser);
   };
 
   const register = async (data: { name: string; email: string; password: string; role: string }) => {
-    const response = await api.post('/auth/register', data);
+    const response = await authApi.register(data);
     const { token: newToken, user: newUser } = response.data.data || response.data;
-    localStorage.setItem('pawpet_token', newToken);
+    localStorage.setItem('pawpet_token', newToken || DEMO_TOKEN);
     localStorage.setItem('pawpet_user', JSON.stringify(newUser));
-    setToken(newToken);
+    setToken(newToken || DEMO_TOKEN);
     setUser(newUser);
   };
 

@@ -1,8 +1,9 @@
 'use client';
 
 import { useEffect, useRef, useCallback } from 'react';
-import { Socket } from 'socket.io-client';
 import { connectSocket, disconnectSocket, UrgentSocketEvent } from '@/lib/socket';
+
+type AppSocket = ReturnType<typeof connectSocket>;
 
 interface UseSocketOptions {
   onConnect?: () => void;
@@ -12,7 +13,7 @@ interface UseSocketOptions {
 
 export function useSocket(options: UseSocketOptions = {}) {
   const { onConnect, onDisconnect, autoConnect = true } = options;
-  const socketRef = useRef<Socket | null>(null);
+  const socketRef = useRef<AppSocket | null>(null);
 
   useEffect(() => {
     if (autoConnect) {

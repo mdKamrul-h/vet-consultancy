@@ -1,26 +1,68 @@
 import { io, Socket } from 'socket.io-client';
+import { isDemoMode } from './demo';
 
 const SOCKET_URL = process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:5000';
 
-let socket: Socket | null = null;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type EventHandler = (...args: any[]) => void;
 
-export function getSocket(): Socket {
+class DemoSocket {
+  connected = false;
+  private listeners = new Map<string, Set<EventHandler>>();
+
+  on(event: string, handler: EventHandler) {
+    if (!this.listeners.has(event)) this.listeners.set(event, new Set());
+    this.listeners.get(event)!.add(handler);
+    return this;
+  }
+
+  off(event: string, handler?: EventHandler) {
+    if (!handler) {
+      this.listeners.delete(event);
+    } else {
+      this.listeners.get(event)?.delete(handler);
+    }
+    return this;
+  }
+
+  emit() {
+    return this;
+  }
+
+  connect() {
+    this.connected = true;
+    this.listeners.get('connect')?.forEach((h) => h());
+    return this;
+  }
+
+  disconnect() {
+    this.connected = false;
+    this.listeners.get('disconnect')?.forEach((h) => h());
+    return this;
+  }
+}
+
+let socket: Socket | DemoSocket | null = null;
+
+export function getSocket(): Socket | DemoSocket {
   if (!socket) {
-    const token = typeof window !== 'undefined' ? localStorage.getItem('pawpet_token') : null;
-    socket = io(SOCKET_URL, {
-      auth: {
-        token: token || '',
-      },
-      autoConnect: false,
-      reconnection: true,
-      reconnectionAttempts: 5,
-      reconnectionDelay: 1000,
-    });
+    if (isDemoMode) {
+      socket = new DemoSocket();
+    } else {
+      const token = typeof window !== 'undefined' ? localStorage.getItem('pawpet_token') : null;
+      socket = io(SOCKET_URL, {
+        auth: { token: token || '' },
+        autoConnect: false,
+        reconnection: true,
+        reconnectionAttempts: 5,
+        reconnectionDelay: 1000,
+      });
+    }
   }
   return socket;
 }
 
-export function connectSocket(): Socket {
+export function connectSocket(): Socket | DemoSocket {
   const s = getSocket();
   if (!s.connected) {
     s.connect();
@@ -41,7 +83,6 @@ export function resetSocket(): void {
   }
 }
 
-// Socket event types for urgent consultations
 export type UrgentSocketEvent =
   | 'urgent:vet_notified'
   | 'urgent:vet_reviewing'
