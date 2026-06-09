@@ -1,6 +1,6 @@
-backend
-jitsi-config
-nginx
+backend/**
+jitsi-config/**
+nginx/**
 docker-compose.yml
 .env
 .env.*
