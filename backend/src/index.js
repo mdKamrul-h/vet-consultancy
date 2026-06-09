@@ -23,6 +23,13 @@ const reviewsRoutes = require('./routes/reviews');
 const { registerSocketHandlers } = require('./socket/handlers');
 const urgentMatcher = require('./services/urgentMatcher');
 
+function parseCorsOrigins() {
+  const raw = process.env.CORS_ORIGIN || 'http://localhost:3000';
+  return raw.split(',').map((origin) => origin.trim()).filter(Boolean);
+}
+
+const corsOrigins = parseCorsOrigins();
+
 // ─── App & HTTP server ────────────────────────────────────────────────────────
 
 const app = express();
@@ -32,7 +39,7 @@ const server = http.createServer(app);
 
 const io = new SocketIOServer(server, {
   cors: {
-    origin: process.env.CORS_ORIGIN || 'http://localhost:3000',
+    origin: corsOrigins,
     methods: ['GET', 'POST'],
     credentials: true,
   },
@@ -68,7 +75,7 @@ app.use(helmet());
 
 app.use(
   cors({
-    origin: process.env.CORS_ORIGIN || 'http://localhost:3000',
+    origin: corsOrigins,
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
